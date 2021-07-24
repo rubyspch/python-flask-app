@@ -1,0 +1,163 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://kit.fontawesome.com/77f3b4f646.js" crossorigin="anonymous"></script>
+    <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?sensor=false"></script>
+    <script>
+        function addressLookup(){
+            let address = document.getElementById("address").value;
+            console.log(address);
+            var geocoder = new google.maps.Geocoder();
+            geocoder.geocode(
+                { 'address': address},
+                function(results, status) {
+                    if (status == google.maps.GeocoderStatus.OK) {
+                        document.getElementById("lat").value =  results[0].geometry.location.lat();
+                        
+                        document.getElementById("lng").value = results[0].geometry.location.lng();
+                    } 
+                }
+            );
+        }
+        function initMap(userInput) {
+            const latlng = new google.maps.LatLng(parseFloat(document.getElementById("lat").value), parseFloat(document.getElementById("lng").value));
+            let mapOptions = {
+            zoom: 12,
+            center: latlng
+            }
+            const map = new google.maps.Map(document.getElementById('map-container'), mapOptions);
+            const marker = new google.maps.Marker({
+                position: userInput,
+                map: map,
+                animation: google.maps.Animation.DROP,
+                title: jinjaAnswer,
+            });
+            const information = new google.maps.InfoWindow({
+                content: '<div style="text-align: center;">'+ '📍 ' + jinjaAddress + '<br>' + '<span style="font-weight: bold;">' + '🎯 ' + jinjaAnswer + '</span>' + '</div>',
+            });
+            if (marker){
+                setTimeout(function(){information.open(map, marker);},1000);
+            };
+        }
+        function convertAddress(address){
+            var geocoder = new google.maps.Geocoder();
+            geocoder.geocode(
+                { 'address': address},
+                function(results, status) {
+                    if (status == google.maps.GeocoderStatus.OK) {
+                        initMap(results[0].geometry.location);
+                    }
+                }
+            );
+        }
+        function sendInput(){
+             if (jinjaAddress){
+                convertAddress(jinjaAddress);
+                addInfoWindow();
+            }
+        }
+    </script>
+    <title>Geo7 Form</title>
+</head>
+<body>
+    <nav>
+        <a class="active" href="/">Home</a>
+        <a href="/data/">Our Data</a>
+        <a href="/about/">About Us</a>
+        <!-- <a href="#">Blogpost <i class="fas fa-link"></i></a> -->
+    </nav>
+    <div id="container">
+        <div id="map-container"> </div>
+        <script async= "false"
+            src=https://maps.googleapis.com/maps/api/js?key=ENTER-API-KEY-HERE&callback=initMap&libraries=&v=weekly>
+        </script>
+        <div id="form-container">
+            <h1>Airbnb Price Predictor</h1>
+            <p id="instruct">Input your property details below to calculate the value of your rental</p>
+            <form onsubmit="sendInput()" action="/calculate/" method="post">
+                <!-- ADDRESS -->
+                <div class="form__fieldset">
+                    <label for="address" class="form__label">Address:</label><br>
+                    <input oninput="addressLookup()" type="text" name="address" id="address" class="form__input" placeholder="Enter your address here"/>
+                    <label for="lat" hidden>Lat</label>
+                    <input type="hidden" id="lat" name="lat" value="52.366363157590214"/>
+                    <label for= "lng" hidden> Long</label>
+                    <input type="hidden" id="lng" name="lng" value="4.902759149348285"/>
+                </div>
+
+                <!-- ACCOMMODATES -->
+
+                <div class="form__fieldset">
+                    <label for="accommodates" class="form__label">Accommodates:</label><br>
+                    <input type="number" name="accommodates" id="accommodates" min="1" max="8" value="1" class="form__input" required/>
+                </div>
+
+                <!-- NEIGHBOURHOOD -->
+
+                <div class="form__fieldset">
+                    <label for="property_type" class="form__label">Property Type:</label><br>
+                    <select name="property_type" id='property_type' class="form__input" required>
+                        <option value="2">House</option>
+                        <option value="1">Apartment</option>
+                        <option value="3">Boat</option>
+                    </select>
+                </div>
+
+                <!-- ENTIRE HOUSE / PRIVATE ROOM -->
+
+                <div class="form__fieldset">
+                    <label for="private" class="form__label">Entire house or private room?</label><br>
+                    <select name="private" id="private" class="form__input form__select">
+                        <option value="true">Entire House</option>
+                        <option value="false">Private Room</option>
+                    </select>
+                </div>
+
+                <!--AMENITIES FOR NOW INPUT CHOOSE FROM LIST AND WILL HAVE A VALUE FOR PYTHON. NEXT STEP: MAKE PYTHON ADD TOGETHER NUMBER OF SELECTED OPTIONS-->
+
+                <div class="form__fieldset">
+                    <label for="amenities" class="form__label">Amenities (Select all that apply):</label><br>
+                    <label for="bathtub">Bathtub</label>
+                    <input type="checkbox" name="bathtub" id="bathtub" value=1> <br>
+                    <label for="dryer">Dryer</label>
+                    <input type="checkbox" name="dryer" id="dryer" value=1> <br>
+                    <label for="dishwasher">Dishwasher</label>
+                    <input type="checkbox" name="dishwasher" id="dishwasher" value=1>
+                </div>
+
+                <!--SUBMIT FORM-->
+
+                <div class="form__fieldset">
+                    <input class="form__submit form__input" id="submit" type="submit" value="Calculate" />
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- JINJA CODE THAT GIVES PYTHON ANSWER TO THE JAVASCRIPT MAP AND CALLS THE PLACE MARKER FUNCTION -->
+    <script>
+        let jinjaerror = {{ error|safe }};
+        let jinjaAddress = {{ jaddress|safe }};
+        let jinjaAnswer = {{ answer|safe }};
+        if (jinjaerror == "True"){
+                alert("\nSorry the address was not found! Please enter a valid Amsterdam address. \n \nIf your address cannot be located, unfortunately it may be outside the scope of our data.");
+                jinjaAddress = false;
+                jinjaAnswer = false;
+            }
+        
+        console.log(jinjaerror);
+        sendInput(); 
+    </script>
+    <script src="/static/buttons.js"></script>
+</body>
+</html>
+<!--
+x. Navigation to dipti page and blog
+x. create the neighbourhood look up file separately and uploed into datasets (looking 3. up everytime throws an error)
+x. Hide latitude and longitude
+x. if address is outside amsterdam throw error
+x. About us page (pictures?)
+6. add background photo credit
+-->
